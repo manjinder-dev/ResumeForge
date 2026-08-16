@@ -350,10 +350,23 @@ CurieFit is a privately maintained product. Its source code is **not publicly av
 
 **Manjinder Singh**
 
-Software Engineer focused on .NET, Angular, full-stack architecture, AI/LLM integrations, agentic AI, Docker, and production web applications.
+Software Engineer focused on:
 
-> ResumeForge is an independent personal open-source project and is not affiliated with or endorsed by any employer or organization.
+- .NET / C#
+- Angular
+- Full-Stack Engineering & Architecture
+- AI & LLM Integrations
+- Agentic AI
+- Docker
+- Production Web Applications
 
+### Other Projects
+
+**CurieFit** — Live fitness and nutrition platform  
+🌐 https://curiefit.com
+
+> ResumeForge is an independent personal open-source project and is not
+> affiliated with or endorsed by any employer or organization.
 ---
 
 ## Support the Project
