@@ -1,6 +1,20 @@
 # ResumeForge
 
+![GitHub Stars](https://img.shields.io/github/stars/manjinder-dev/ResumeForge?style=for-the-badge)
+![GitHub License](https://img.shields.io/github/license/manjinder-dev/ResumeForge?style=for-the-badge)
+![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?style=for-the-badge&logo=dotnet)
+![Angular](https://img.shields.io/badge/Angular-18-DD0031?style=for-the-badge&logo=angular)
+![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker)
+
 > AI-powered, multi-provider resume tailoring built with **.NET 8**, **Angular 18**, **Docker**, and modern LLM integrations.
+
+![ResumeForge UI Demo](docs/images/ui-screenshot.png)
+
+## 🎥 Demo
+
+![ResumeForge in action](docs/images/demo.gif)
+
+> *The GIF shows a complete workflow: uploading a PDF, pasting a Job Description, generating the tailored resume, and downloading the result.*
 
 ResumeForge helps users tailor an existing PDF resume to a target job description, generate a professional summary and rewritten experience bullets, create a tailored cover letter, and export the final result as **DOCX**, **PDF**, or plain text.
 
