@@ -1,0 +1,191 @@
+<main class="page-shell">
+  <section class="hero" aria-labelledby="page-title">
+    <div>
+      <p class="eyebrow">AI resume tailoring · stateless by design</p>
+      <h1 id="page-title">ResumeForge</h1>
+      <p class="hero-copy">
+        Upload a text-based PDF resume, paste the target job description, and generate a tailored summary,
+        experience bullets, and cover letter using your own AI provider API key.
+      </p>
+    </div>
+    <div class="privacy-badge" role="note">
+      <strong>No database</strong>
+      <span>ResumeForge does not persist your resume or generated result.</span>
+    </div>
+  </section>
+
+  <section class="workspace" aria-label="Resume tailoring form">
+    <div class="input-card">
+      <div class="field-block">
+        <div class="label-row">
+          <label for="resume">1. Resume PDF</label>
+          <span>Max 10 MB</span>
+        </div>
+        <input
+          id="resume"
+          class="file-input"
+          type="file"
+          accept="application/pdf,.pdf"
+          (change)="onFileSelected($event)"
+        >
+        @if (selectedFile(); as file) {
+          <p class="file-name">Selected: {{ file.name }}</p>
+        }
+      </div>
+
+      <div class="field-block">
+        <div class="label-row">
+          <label for="job-description">2. Target job description</label>
+          <span>{{ jobDescription().length }} chars</span>
+        </div>
+        <textarea
+          id="job-description"
+          rows="14"
+          [value]="jobDescription()"
+          (input)="onJobDescriptionInput($event)"
+          placeholder="Paste the complete job description here..."
+        ></textarea>
+        <p class="field-help">
+          At least 50 characters. More complete job descriptions produce better keyword alignment.
+        </p>
+      </div>
+
+      <div class="field-block provider-panel">
+        <div class="label-row">
+          <label for="ai-provider">3. AI provider</label>
+          <span>{{ selectedProvider().description }}</span>
+        </div>
+
+        <select
+          id="ai-provider"
+          [value]="provider()"
+          (change)="onProviderChange($event)"
+        >
+          @for (item of providers; track item.id) {
+            <option [value]="item.id">{{ item.label }}</option>
+          }
+        </select>
+
+        <div class="provider-grid">
+          <div>
+            <label for="ai-model">Model</label>
+            <input
+              id="ai-model"
+              type="text"
+              autocomplete="off"
+              spellcheck="false"
+              [value]="model()"
+              (input)="onModelInput($event)"
+              placeholder="Model ID"
+            >
+          </div>
+
+          <div>
+            <div class="label-row compact-label-row">
+              <label for="api-key">{{ selectedProvider().label }} API key</label>
+              <button class="link-button" type="button" (click)="clearApiKey()">Clear saved key</button>
+            </div>
+            <input
+              id="api-key"
+              type="password"
+              autocomplete="off"
+              spellcheck="false"
+              [value]="apiKey()"
+              (input)="onApiKeyInput($event)"
+              [placeholder]="selectedProvider().keyPlaceholder"
+            >
+          </div>
+        </div>
+
+        @if (isCustomProvider()) {
+          <div class="custom-endpoint-block">
+            <label for="custom-base-url">OpenAI-compatible base URL</label>
+            <input
+              id="custom-base-url"
+              type="url"
+              autocomplete="off"
+              spellcheck="false"
+              [value]="customBaseUrl()"
+              (input)="onCustomBaseUrlInput($event)"
+              placeholder="https://api.example.com/v1"
+            >
+            <p class="field-help">
+              ResumeForge appends <code>/chat/completions</code> unless the URL already ends with it.
+              Only public HTTPS endpoints are accepted.
+            </p>
+          </div>
+        }
+
+        <p class="field-help provider-help">
+          The selected provider, model, and provider-specific key are remembered in this browser.
+          The API key is sent to this app's backend only in the <code>X-AI-Key</code> request header and is
+          forwarded to the selected provider for the request.
+        </p>
+      </div>
+
+      @if (errorMessage()) {
+        <div class="error-box" role="alert">{{ errorMessage() }}</div>
+      }
+
+      <button class="primary-button" type="button" [disabled]="!canSubmit()" (click)="submit()">
+        @if (isLoading()) {
+          <span class="spinner" aria-hidden="true"></span>
+          Tailoring with {{ selectedProvider().label }}...
+        } @else {
+          Tailor my resume
+        }
+      </button>
+    </div>
+
+    <div class="result-card" [class.empty]="!result()">
+      @if (result(); as tailored) {
+        <div class="result-header">
+          <div>
+            <p class="eyebrow">Generated result</p>
+            <h2>Tailored application copy</h2>
+          </div>
+          <div class="download-actions">
+            <button type="button" class="secondary-button" (click)="downloadText()">Download .txt</button>
+            <button type="button" class="secondary-button" (click)="downloadDocx()">Download .docx</button>
+          </div>
+        </div>
+
+        <article class="result-section">
+          <h3>Professional Summary</h3>
+          <p>{{ tailored.summary }}</p>
+        </article>
+
+        <article class="result-section">
+          <h3>Rewritten Bullet Points</h3>
+          <ul>
+            @for (point of tailored.bulletPoints; track $index) {
+              <li>{{ point }}</li>
+            }
+          </ul>
+        </article>
+
+        <article class="result-section">
+          <h3>Cover Letter</h3>
+          <p class="preserve-lines">{{ tailored.coverLetter }}</p>
+        </article>
+
+        <details class="json-preview">
+          <summary>View raw JSON</summary>
+          <pre>{{ prettyResult() }}</pre>
+        </details>
+      } @else {
+        <div class="empty-state">
+          <div class="empty-icon" aria-hidden="true">RF</div>
+          <h2>Your tailored result will appear here</h2>
+          <p>Nothing is saved to a database. Download the result before closing the page if you want to keep it.</p>
+        </div>
+      }
+    </div>
+  </section>
+
+  <footer>
+    <p>
+      ResumeForge uses AI-generated text. Verify every metric, claim, company reference, and keyword before submitting an application.
+    </p>
+  </footer>
+</main>
