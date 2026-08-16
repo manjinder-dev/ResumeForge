@@ -201,7 +201,7 @@ public sealed class OpenAiCompatibleProviderClient(
 
         return new HttpClient(handler, disposeHandler: true)
         {
-            Timeout = TimeSpan.FromSeconds(90)
+            Timeout = TimeSpan.FromMinutes(3)
         };
     }
 

@@ -1,87 +1,220 @@
 # ResumeForge
 
-ResumeForge is a stateless full-stack application that tailors a text-based PDF resume to a target job description. The Angular frontend uploads the PDF and job description to a .NET 8 Web API, the backend extracts text with PdfPig, and the extracted resume content is sent to the AI provider selected by the user with the user's own API key.
+> AI-powered, multi-provider resume tailoring built with **.NET 8**, **Angular 18**, **Docker**, and modern LLM integrations.
+
+ResumeForge helps users tailor an existing PDF resume to a target job description, generate a professional summary and rewritten experience bullets, create a tailored cover letter, and export the final result as **DOCX**, **PDF**, or plain text.
+
+The project is designed as a **stateless, Bring-Your-Own-Key (BYOK)** application. ResumeForge does not maintain a user database or persist resumes, job descriptions, API keys, or generated documents on the server.
+
+If ResumeForge is useful to you, please consider giving the repository a **GitHub Star ⭐**.
+
+---
 
 ## Features
 
-- Angular 18 standalone-component frontend with Signals and OnPush change detection.
-- PDF resume upload with client-side and server-side file validation.
-- Pure C# PDF text extraction using PdfPig.
-- Clear rejection of scanned or image-only PDFs when no extractable text is present.
-- Multi-provider AI support with provider-specific API adapters.
-- Per-provider API keys stored only in browser `localStorage` and transmitted to the backend in `X-AI-Key`.
-- Editable model ID so model changes do not require a ResumeForge redeployment.
-- Structured JSON result containing a professional summary, rewritten bullet points, and cover letter.
-- Browser-side `.txt` and `.docx` downloads.
-- No database and no server-side persistence of resumes, job descriptions, API keys, or generated results.
-- Multi-stage Docker builds, Docker Compose networking, and container health checks.
-- A guarded `Other (OpenAI-compatible)` option for public HTTPS endpoints.
+- PDF resume upload
+- Job-description based tailoring
+- PdfPig text extraction
+- Scanned/image-only PDF detection
+- Professional summary generation
+- Rewritten experience bullets
+- Tailored cover letter
+- ATS-friendly Resume DOCX/PDF export
+- Cover Letter DOCX/PDF export
+- One-click copy
+- Multi-provider AI support
+- Custom OpenAI-compatible provider support
+- Stateless backend
+- Docker and Docker Compose
+- GitHub Actions CI
+- SSRF protection for custom provider endpoints
+
+---
 
 ## Supported AI Providers
 
-| Provider | Provider ID | Default model | API style |
-| --- | --- | --- | --- |
-| OpenAI | `openai` | `gpt-4o-mini` | OpenAI Chat Completions |
-| Anthropic / Claude | `anthropic` | `claude-sonnet-5` | Anthropic Messages API |
-| Google Gemini | `gemini` | `gemini-3.7-flash` | Gemini `generateContent` |
-| xAI / Grok | `xai` | `grok-4.6` | OpenAI-compatible Chat Completions |
-| Groq | `groq` | `llama-3.3-70b-versatile` | OpenAI-compatible Chat Completions |
-| DeepSeek | `deepseek` | `deepseek-v4-pro` | OpenAI-compatible Chat Completions |
-| Mistral AI | `mistral` | `mistral-small-latest` | OpenAI-compatible Chat Completions |
-| OpenRouter | `openrouter` | `openai/gpt-4o-mini` | OpenAI-compatible Chat Completions |
-| Other | `custom` | User supplied | Public HTTPS OpenAI-compatible endpoint |
+ResumeForge supports:
 
-The model field is editable. If a provider deprecates or replaces a model, enter another model ID supported by your account.
+- OpenAI
+- Anthropic / Claude
+- Google Gemini
+- xAI / Grok
+- Groq
+- DeepSeek
+- Mistral
+- OpenRouter
+- Other OpenAI-compatible APIs
 
-The custom provider expects an OpenAI-compatible `/chat/completions` response shape and Bearer-token authentication. If the entered base URL does not already end in `/chat/completions`, ResumeForge appends it. Custom endpoints must use public HTTPS addresses; localhost and private-network destinations are rejected, and the backend does not follow HTTP redirects.
+Users choose the provider, model, and API key directly in the application.
+
+### Need an API key?
+
+Some providers currently offer free, trial, or developer access.
+
+See the dedicated guide:
+
+**[AI Provider API Keys & Free/Trial Options](docs/AI_API_KEYS.md)**
+
+> Provider pricing, free tiers, models, and rate limits can change. Always verify current details on the provider's official website.
+
+---
+
+## Custom AI Provider
+
+Selecting **Other (OpenAI-compatible)** reveals:
+
+```text
+Base URL
+Model
+API Key
+```
+
+ResumeForge then calls:
+
+```text
+POST {BASE_URL}/chat/completions
+```
+
+Custom endpoints must use public HTTPS and pass server-side SSRF validation.
+
+---
 
 ## Architecture
 
-```text
-Browser (Angular :4200)
-        |
-        | POST /api/tailor
-        | multipart/form-data
-        | X-AI-Key header
-        v
-Nginx frontend container
-        |
-        v
-.NET 8 API (:8080 internal / :5000 host)
-        |
-        +--> PdfPig extracts resume text in memory
-        |
-        +--> Provider adapter
-             |-- OpenAI
-             |-- Anthropic
-             |-- Gemini
-             |-- xAI
-             |-- Groq
-             |-- DeepSeek
-             |-- Mistral
-             |-- OpenRouter
-             `-- Custom OpenAI-compatible endpoint
-        |
-        v
-JSON response -> Angular -> TXT/DOCX download
+```mermaid
+flowchart LR
+    A[Angular 18 Frontend] -->|Multipart Request| B[Nginx]
+    B --> C[.NET 8 Web API]
+
+    C --> D[PdfPig PDF Parser]
+    D --> E[Resume Text]
+
+    E --> F[Resume Tailoring Service]
+
+    F --> G[OpenAI-Compatible Adapter]
+    F --> H[Anthropic Adapter]
+    F --> I[Gemini Adapter]
+
+    G --> J[OpenAI / xAI / Groq / DeepSeek / Mistral / OpenRouter / Custom]
+    H --> K[Anthropic]
+    I --> L[Google Gemini]
+
+    F --> M[Structured Resume JSON]
+    M --> N[Angular Document Export]
+    N --> O[Resume DOCX/PDF]
+    N --> P[Cover Letter DOCX/PDF]
 ```
+
+---
+
+## Engineering Highlights
+
+### Provider Abstraction
+
+AI integrations are separated behind provider-specific adapters instead of coupling resume-generation logic directly to one vendor.
+
+```text
+IAiProviderGateway
+│
+├── OpenAiCompatibleProviderClient
+│   ├── OpenAI
+│   ├── xAI
+│   ├── Groq
+│   ├── DeepSeek
+│   ├── Mistral
+│   ├── OpenRouter
+│   └── Custom OpenAI-compatible APIs
+│
+├── AnthropicProviderClient
+│
+└── GeminiProviderClient
+```
+
+### Stateless Backend
+
+There is no application database. Resume files, job descriptions, API keys, and generated results are processed for the active request and are not intentionally persisted by ResumeForge.
+
+### BYOK Security Model
+
+Users supply their own AI API keys. Keys are request-scoped on the backend and are not stored in server configuration or a database.
+
+### SSRF Protection
+
+Custom provider endpoints are restricted to public HTTPS destinations and private/localhost destinations are blocked.
+
+### ATS-Friendly Document Generation
+
+ResumeForge generates clean, single-column documents with selectable text and clear section hierarchy rather than visually complex layouts that may reduce ATS parsing reliability.
+
+---
+
+## Technology Stack
+
+### Backend
+
+- .NET 8
+- ASP.NET Core Web API
+- Controllers
+- Dependency Injection
+- `async` / `await`
+- `IHttpClientFactory`
+- PdfPig
+- Provider adapter architecture
+- Health checks
+
+### Frontend
+
+- Angular 18+
+- Standalone Components
+- Signals
+- OnPush change detection
+- Angular HttpClient
+- localStorage
+- Client-side DOCX/PDF generation
+
+### Infrastructure
+
+- Docker
+- Docker Compose
+- Nginx
+- Multi-stage builds
+- Custom Docker network
+- Container health checks
+- GitHub Actions
+
+---
 
 ## Quick Start
 
 ### Prerequisites
 
-- Docker Engine with Docker Compose support.
-- An API key from at least one supported AI provider.
+- Docker
+- Docker Compose
+- Git
+- API key from at least one supported AI provider
 
-### Run with Docker Compose
-
-Clone this repository with Git, change into the `ResumeForge` directory, then run:
+### Clone
 
 ```bash
-docker-compose up -d
+git clone https://github.com/manjinder-dev/ResumeForge.git
+cd ResumeForge
 ```
 
-Modern Docker installations can use the equivalent command:
+### Create local environment file
+
+Linux/macOS:
+
+```bash
+cp .env.example .env
+```
+
+Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+### Start
 
 ```bash
 docker compose up -d
@@ -93,128 +226,158 @@ Open:
 http://localhost:4200
 ```
 
-Backend health endpoint:
+Backend:
+
+```text
+http://localhost:5000
+```
+
+Health endpoint:
 
 ```text
 http://localhost:5000/health
 ```
 
-Stop the application:
+Stop:
 
 ```bash
-docker-compose down
+docker compose down
 ```
 
-### Local Development Without Docker
+---
 
-Backend:
+## Privacy
 
-```bash
-cd backend
-dotnet restore
-dotnet run
-```
+ResumeForge is stateless, but AI processing is **not local-only**.
 
-The included launch profile runs the API at `http://localhost:5000`.
+ResumeForge does not intentionally persist uploaded resumes, job descriptions, generated documents, or API keys. However, extracted resume content and the job description are sent to the AI provider selected by the user.
 
-Frontend, in a second terminal:
+Users should review the privacy and data-retention policies of their selected provider before submitting confidential information.
 
-```bash
-cd frontend
-npm install
-npm start
-```
+---
 
-The Angular development server runs at `http://localhost:4200` and uses `proxy.conf.json` to forward `/api` to the .NET API.
+## Security
 
-## API
+ResumeForge includes:
 
-### `POST /api/tailor`
+- No application database
+- No server-side API-key persistence
+- Request-scoped credentials
+- Upload-size validation
+- Job-description validation
+- Scanned PDF detection
+- No intentional request-body logging
+- Provider-specific authentication handling
+- HTTPS-only custom endpoints
+- Private-network/localhost blocking
+- Docker health checks
 
-Request content type:
+For public internet deployment, also add TLS termination, rate limiting, CSP, secret-redacted observability, abuse monitoring, and dependency scanning.
+
+---
+
+## AI Accuracy Warning
+
+AI-generated resume content must be reviewed before use.
+
+Always verify generated:
+
+- numbers
+- percentages
+- monetary figures
+- skills
+- project claims
+- achievements
+- employer details
+
+ResumeForge assists with writing; it should not be treated as a source of truth for professional history.
+
+---
+
+## Screenshots
+
+For a public portfolio repository, add real screenshots under:
 
 ```text
-multipart/form-data
+docs/images/
 ```
 
-Form fields:
+Recommended screenshots:
 
-- `resume`: PDF file, maximum 10 MB.
-- `jobDescription`: target job description, 50 to 30,000 characters.
-- `provider`: one of the provider IDs listed above.
-- `model`: model ID. If omitted for a built-in provider, the backend uses that provider's default model.
-- `customBaseUrl`: required only when `provider=custom`.
+1. Upload + provider selection
+2. Generated resume preview
+3. Resume PDF/DOCX output
+4. Cover-letter preview
+5. Custom provider configuration
 
-Required request header:
+---
 
-```text
-X-AI-Key: <provider-api-key>
-```
+## Contributing
 
-For backward compatibility, `X-OpenAI-Key` is still accepted when `X-AI-Key` is absent. New clients should use `X-AI-Key`.
+Contributions are welcome.
 
-Successful response:
+Useful contribution areas include:
 
-```json
-{
-  "summary": "Tailored professional summary",
-  "bulletPoints": [
-    "Tailored experience bullet",
-    "Another tailored experience bullet"
-  ],
-  "coverLetter": "Tailored four-sentence cover letter"
-}
-```
+- AI provider adapters
+- security improvements
+- export templates
+- tests
+- accessibility
+- UI/UX
+- Docker improvements
+- documentation
+- bug fixes
 
-## Provider Key Storage
+Please read [`CONTRIBUTING.md`](CONTRIBUTING.md) before opening a pull request.
 
-ResumeForge stores API keys separately for each provider in the browser under `resumeforge_ai_keys_v1`. Switching providers restores that provider's previously entered key. Provider selection, model overrides, and the custom base URL are stored under `resumeforge_ai_settings_v1`.
+If ResumeForge is useful to you, a GitHub **Star ⭐** is appreciated, but never required to contribute.
 
-An older OpenAI key stored under `resumeforge_openai_key` is migrated automatically to the new per-provider key store the first time the updated frontend loads.
+---
 
-Browser `localStorage` is convenient but is accessible to JavaScript running on the same origin. For a public production deployment, a strong Content Security Policy and careful XSS prevention are mandatory. If you do not want the browser to retain a key, use **Clear saved key** after the request.
+## Other Projects
 
-## Privacy Statement
+### CurieFit
 
-ResumeForge itself is stateless: it has no database and does not intentionally write the uploaded resume, job description, provider API key, or generated result to disk. The API key is stored by the browser in `localStorage`, sent to the ResumeForge backend in the `X-AI-Key` header for a tailoring request, held only in memory for that request, and forwarded to the selected AI provider.
+**CurieFit** is a live fitness and nutrition platform featuring health calculators and AI-powered personalized diet/workout planning.
 
-**The statement “data never leaves your machine” would be inaccurate for this application.** To generate the tailored result, the extracted resume text and target job description are transmitted to the selected external AI provider. Users must review that provider's privacy, retention, and data-processing terms before submitting confidential or sensitive information.
+🌐 **https://curiefit.com**
 
-The backend intentionally avoids logging request bodies and API keys. Reverse proxies, hosting platforms, operating systems, browser extensions, or infrastructure outside this repository can still introduce their own logging or telemetry and must be configured separately.
+CurieFit is a privately maintained product. Its source code is **not publicly available**.
 
-## Important Accuracy Warning
+---
 
-The required AI prompt instructs the model to add numbers, percentages, and dollar amounts where missing. That can cause fabricated metrics that were not present in the original resume. ResumeForge therefore displays a verification warning in the UI. Users must verify every generated number, achievement, company reference, and factual claim before using the output in a job application.
+## Author
 
-For a production hiring tool, the safer prompt design is to quantify achievements only when supported by the source resume or to mark missing metrics for the user to fill in. This repository preserves the exact prompt requested for this project.
+**Manjinder Singh**
 
-## Security Notes
+Software Engineer focused on .NET, Angular, full-stack architecture, AI/LLM integrations, agentic AI, Docker, and production web applications.
 
-- Do not put provider API keys in `.env`, Angular source code, Docker images, or source control.
-- Provider keys are supplied at runtime through the browser.
-- API keys are never returned in API responses.
-- PDF uploads are restricted to 10 MB.
-- Job descriptions are restricted to 30,000 characters.
-- The backend does not implement OCR; scanned PDFs are rejected with a clear error.
-- The custom endpoint feature accepts only HTTPS URLs that resolve to public internet addresses.
-- Redirects are disabled on outbound provider HTTP requests.
-- The custom provider supports Bearer-token OpenAI-compatible endpoints only. Do not accept arbitrary user-defined authentication headers in a public deployment.
-- For an internet-facing deployment, add TLS, rate limiting, request-size limits at the edge, observability with secret redaction, a restrictive Content Security Policy, and abuse controls.
+> ResumeForge is an independent personal open-source project and is not affiliated with or endorsed by any employer or organization.
 
-## Open-source License
+---
 
-ResumeForge is intended to be distributed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
+## Support the Project
 
-When redistributing or modifying the application, comply with the AGPL v3 requirements, including the network-use source availability obligation. Add the standard AGPL-3.0 license text as `LICENSE` when publishing the repository.
+If ResumeForge helped you:
 
-## Contribution Guidelines
+- ⭐ Star the repository
+- 🐛 Report bugs
+- 💡 Suggest improvements
+- 🤝 Submit pull requests
+- 📣 Share the project
 
-1. Fork the repository and create a focused feature branch.
-2. Keep backend code compatible with .NET 8 and frontend code compatible with Angular 18 standalone components.
-3. Implement provider-specific behavior through `IAiProviderClient` rather than adding provider conditionals to `ResumeService`.
-4. Do not introduce a database or persist user resume data unless the project's privacy model is deliberately redesigned and documented.
-5. Never commit API keys, sample real resumes, or confidential job application data.
-6. Keep provider credentials request-scoped and redact secrets from logs.
-7. Run the frontend production build and backend build before opening a pull request.
-8. Add or update tests when changing validation, parsing, provider response handling, or export behavior.
-9. Keep pull requests small enough to review and include a concise description of behavior changes and security implications.
+---
+
+## License
+
+ResumeForge is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
+
+See [`LICENSE`](LICENSE).
+
+---
+
+## Disclaimer
+
+ResumeForge does not guarantee interviews, employment, ATS acceptance, factual accuracy of AI-generated content, or compatibility with every provider/model.
+
+Always review generated documents before submitting them to an employer.

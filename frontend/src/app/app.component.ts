@@ -60,6 +60,9 @@ export class AppComponent {
   readonly isLoading = signal(false);
   readonly errorMessage = signal('');
   readonly result = signal<TailoredResult | null>(null);
+  readonly copyMessage = signal('');
+
+  private copyMessageTimer: number | undefined;
 
   readonly selectedProvider = computed(() => this.getProviderDefinition(this.provider()));
   readonly isCustomProvider = computed(() => this.selectedProvider().customEndpoint);
@@ -202,23 +205,100 @@ export class AppComponent {
       });
   }
 
-  downloadText(): void {
-    const current = this.result();
-    if (current) {
-      this.downloadService.downloadText(current);
-    }
-  }
-
-  async downloadDocx(): Promise<void> {
+  async downloadResumeDocx(): Promise<void> {
     const current = this.result();
     if (!current) {
       return;
     }
 
     try {
-      await this.downloadService.downloadDocx(current);
+      await this.downloadService.downloadResumeDocx(current);
     } catch {
-      this.errorMessage.set('Could not create the DOCX file in this browser.');
+      this.errorMessage.set('Could not create the resume DOCX file in this browser.');
+    }
+  }
+
+  downloadResumePdf(): void {
+    const current = this.result();
+    if (!current) {
+      return;
+    }
+
+    try {
+      this.downloadService.downloadResumePdf(current);
+    } catch {
+      this.errorMessage.set('Could not create the resume PDF file in this browser.');
+    }
+  }
+
+  async downloadCoverLetterDocx(): Promise<void> {
+    const current = this.result();
+    if (!current) {
+      return;
+    }
+
+    try {
+      await this.downloadService.downloadCoverLetterDocx(current);
+    } catch {
+      this.errorMessage.set('Could not create the cover letter DOCX file in this browser.');
+    }
+  }
+
+  downloadCoverLetterPdf(): void {
+    const current = this.result();
+    if (!current) {
+      return;
+    }
+
+    try {
+      this.downloadService.downloadCoverLetterPdf(current);
+    } catch {
+      this.errorMessage.set('Could not create the cover letter PDF file in this browser.');
+    }
+  }
+
+  copyResume(): void {
+    const current = this.result();
+    if (current) {
+      void this.copyText(
+        this.downloadService.buildResumePlainText(current.resume),
+        'Full resume copied'
+      );
+    }
+  }
+
+  copySummary(): void {
+    const current = this.result();
+    if (current) {
+      void this.copyText(current.resume.summary, 'Summary copied');
+    }
+  }
+
+  copyExperienceBullets(): void {
+    const current = this.result();
+    if (!current) {
+      return;
+    }
+
+    const bullets = current.resume.experience
+      .flatMap((experience) => experience.bulletPoints)
+      .filter((point) => point.trim().length > 0)
+      .map((point) => `• ${point.trim()}`)
+      .join('\n');
+
+    void this.copyText(bullets, 'Experience bullets copied');
+  }
+
+  copyCoverLetter(): void {
+    const current = this.result();
+    if (current) {
+      void this.copyText(
+        this.downloadService.buildCoverLetterPlainText(
+          current.resume,
+          current.coverLetterDocument
+        ),
+        'Cover letter copied'
+      );
     }
   }
 
@@ -226,6 +306,59 @@ export class AppComponent {
     delete this.apiKeys[this.provider()];
     this.persistApiKeys();
     this.apiKey.set('');
+  }
+
+  private async copyText(text: string, successMessage: string): Promise<void> {
+    if (!text.trim()) {
+      return;
+    }
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        this.fallbackCopy(text);
+      }
+
+      this.showCopyMessage(successMessage);
+    } catch {
+      try {
+        this.fallbackCopy(text);
+        this.showCopyMessage(successMessage);
+      } catch {
+        this.errorMessage.set('Could not copy the text. Your browser may be blocking clipboard access.');
+      }
+    }
+  }
+
+  private fallbackCopy(text: string): void {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+
+    const copied = document.execCommand('copy');
+    document.body.removeChild(textarea);
+
+    if (!copied) {
+      throw new Error('Clipboard copy failed.');
+    }
+  }
+
+  private showCopyMessage(message: string): void {
+    this.copyMessage.set(message);
+
+    if (this.copyMessageTimer !== undefined) {
+      window.clearTimeout(this.copyMessageTimer);
+    }
+
+    this.copyMessageTimer = window.setTimeout(() => {
+      this.copyMessage.set('');
+      this.copyMessageTimer = undefined;
+    }, 1800);
   }
 
   private getProviderDefinition(provider: AiProviderId): AiProviderDefinition {
