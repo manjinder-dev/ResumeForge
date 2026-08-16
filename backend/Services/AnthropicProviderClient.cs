@@ -24,7 +24,7 @@ public sealed class AnthropicProviderClient(
         var requestBody = new
         {
             model = options.Model,
-            max_tokens = 4096,
+            max_tokens = 8192,
             messages = new[]
             {
                 new

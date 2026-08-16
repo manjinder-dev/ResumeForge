@@ -44,7 +44,7 @@ public sealed class GeminiProviderClient(
             generationConfig = new
             {
                 responseMimeType = "application/json",
-                maxOutputTokens = 4096
+                maxOutputTokens = 8192
             }
         };
 

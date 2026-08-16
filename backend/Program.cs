@@ -36,7 +36,7 @@ builder.Services.AddScoped<IAiProviderClient, GeminiProviderClient>();
 builder.Services
     .AddHttpClient("AiProviders", client =>
     {
-        client.Timeout = TimeSpan.FromSeconds(90);
+        client.Timeout = TimeSpan.FromMinutes(3);
     })
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
     {

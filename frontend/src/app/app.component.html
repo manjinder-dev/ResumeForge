@@ -1,16 +1,16 @@
 <main class="page-shell">
   <section class="hero" aria-labelledby="page-title">
     <div>
-      <p class="eyebrow">AI resume tailoring · stateless by design</p>
+      <p class="eyebrow">AI resume tailoring · professional exports · stateless by design</p>
       <h1 id="page-title">ResumeForge</h1>
       <p class="hero-copy">
-        Upload a text-based PDF resume, paste the target job description, and generate a tailored summary,
-        experience bullets, and cover letter using your own AI provider API key.
+        Upload a text-based PDF resume, paste the target job description, and generate an ATS-friendly tailored
+        resume plus a matching cover letter using your own AI provider API key.
       </p>
     </div>
     <div class="privacy-badge" role="note">
       <strong>No database</strong>
-      <span>ResumeForge does not persist your resume or generated result.</span>
+      <span>ResumeForge does not persist your resume, API key, or generated documents on the server.</span>
     </div>
   </section>
 
@@ -46,7 +46,8 @@
           placeholder="Paste the complete job description here..."
         ></textarea>
         <p class="field-help">
-          At least 50 characters. More complete job descriptions produce better keyword alignment.
+          At least 50 characters. A complete job description gives the AI more context for skills, keywords,
+          role title, and company-specific cover-letter wording.
         </p>
       </div>
 
@@ -130,9 +131,9 @@
       <button class="primary-button" type="button" [disabled]="!canSubmit()" (click)="submit()">
         @if (isLoading()) {
           <span class="spinner" aria-hidden="true"></span>
-          Tailoring with {{ selectedProvider().label }}...
+          Building resume with {{ selectedProvider().label }}...
         } @else {
-          Tailor my resume
+          Build tailored resume + cover letter
         }
       </button>
     </div>
@@ -141,51 +142,200 @@
       @if (result(); as tailored) {
         <div class="result-header">
           <div>
-            <p class="eyebrow">Generated result</p>
-            <h2>Tailored application copy</h2>
-          </div>
-          <div class="download-actions">
-            <button type="button" class="secondary-button" (click)="downloadText()">Download .txt</button>
-            <button type="button" class="secondary-button" (click)="downloadDocx()">Download .docx</button>
+            <p class="eyebrow">Application package ready</p>
+            <h2>Professional resume + cover letter</h2>
+            <p class="result-subtitle">Preview, copy, or export each document independently.</p>
           </div>
         </div>
 
-        <article class="result-section">
-          <h3>Professional Summary</h3>
-          <p>{{ tailored.summary }}</p>
-        </article>
+        <section class="export-panel" aria-label="Resume export options">
+          <div>
+            <span class="export-label">Resume</span>
+            <strong>{{ tailored.resume.fullName || 'Tailored resume' }}</strong>
+          </div>
+          <div class="download-actions">
+            <button type="button" class="secondary-button" (click)="copyResume()">Copy resume</button>
+            <button type="button" class="secondary-button" (click)="downloadResumeDocx()">DOCX</button>
+            <button type="button" class="secondary-button primary-outline" (click)="downloadResumePdf()">PDF</button>
+          </div>
+        </section>
 
-        <article class="result-section">
-          <h3>Rewritten Bullet Points</h3>
-          <ul>
-            @for (point of tailored.bulletPoints; track $index) {
-              <li>{{ point }}</li>
+        <article class="resume-preview" aria-label="Tailored resume preview">
+          <header class="resume-header">
+            <h2>{{ tailored.resume.fullName || 'Candidate Name' }}</h2>
+            @if (tailored.resume.headline) {
+              <p class="resume-headline">{{ tailored.resume.headline }}</p>
             }
-          </ul>
+            <p class="resume-contact">
+              @if (tailored.resume.contact.email) { <span>{{ tailored.resume.contact.email }}</span> }
+              @if (tailored.resume.contact.phone) { <span>{{ tailored.resume.contact.phone }}</span> }
+              @if (tailored.resume.contact.location) { <span>{{ tailored.resume.contact.location }}</span> }
+              @if (tailored.resume.contact.linkedIn) { <span>{{ tailored.resume.contact.linkedIn }}</span> }
+              @if (tailored.resume.contact.portfolio) { <span>{{ tailored.resume.contact.portfolio }}</span> }
+            </p>
+          </header>
+
+          <section class="resume-section">
+            <div class="resume-section-heading">
+              <h3>Professional Summary</h3>
+              <button type="button" class="copy-button" (click)="copySummary()">Copy</button>
+            </div>
+            <p>{{ tailored.resume.summary }}</p>
+          </section>
+
+          @if (tailored.resume.skills.length > 0) {
+            <section class="resume-section">
+              <div class="resume-section-heading">
+                <h3>Core Skills</h3>
+              </div>
+              <p class="skill-line">{{ tailored.resume.skills.join(' · ') }}</p>
+            </section>
+          }
+
+          @if (tailored.resume.experience.length > 0) {
+            <section class="resume-section">
+              <div class="resume-section-heading">
+                <h3>Professional Experience</h3>
+                <button type="button" class="copy-button" (click)="copyExperienceBullets()">Copy bullets</button>
+              </div>
+
+              @for (experience of tailored.resume.experience; track $index) {
+                <div class="resume-entry">
+                  <div class="entry-title-row">
+                    <div>
+                      <strong>{{ experience.jobTitle }}</strong>
+                      @if (experience.company) {
+                        <span class="company">{{ experience.company }}</span>
+                      }
+                    </div>
+                    <span class="entry-date">
+                      {{ experience.startDate }}@if (experience.startDate && experience.endDate) { - }{{ experience.endDate }}
+                    </span>
+                  </div>
+                  @if (experience.location) {
+                    <p class="entry-meta">{{ experience.location }}</p>
+                  }
+                  <ul>
+                    @for (point of experience.bulletPoints; track $index) {
+                      <li>{{ point }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+            </section>
+          }
+
+          @if (tailored.resume.projects.length > 0) {
+            <section class="resume-section">
+              <div class="resume-section-heading">
+                <h3>Selected Projects</h3>
+              </div>
+              @for (project of tailored.resume.projects; track $index) {
+                <div class="resume-entry compact-entry">
+                  <strong>{{ project.name }}</strong>
+                  @if (project.description) { <p>{{ project.description }}</p> }
+                  @if (project.technologies.length > 0) {
+                    <p class="entry-meta"><strong>Technologies:</strong> {{ project.technologies.join(', ') }}</p>
+                  }
+                </div>
+              }
+            </section>
+          }
+
+          @if (tailored.resume.education.length > 0) {
+            <section class="resume-section">
+              <div class="resume-section-heading">
+                <h3>Education</h3>
+              </div>
+              @for (education of tailored.resume.education; track $index) {
+                <div class="resume-entry compact-entry">
+                  <div class="entry-title-row">
+                    <div>
+                      <strong>{{ education.degree }}</strong>
+                      @if (education.institution) { <span class="company">{{ education.institution }}</span> }
+                    </div>
+                    <span class="entry-date">{{ education.graduationDate }}</span>
+                  </div>
+                  @if (education.location) { <p class="entry-meta">{{ education.location }}</p> }
+                  @if (education.details.length > 0) {
+                    <ul>
+                      @for (detail of education.details; track $index) { <li>{{ detail }}</li> }
+                    </ul>
+                  }
+                </div>
+              }
+            </section>
+          }
+
+          @if (tailored.resume.certifications.length > 0) {
+            <section class="resume-section">
+              <div class="resume-section-heading">
+                <h3>Certifications</h3>
+              </div>
+              <ul>
+                @for (certification of tailored.resume.certifications; track $index) {
+                  <li>{{ certification }}</li>
+                }
+              </ul>
+            </section>
+          }
         </article>
 
-        <article class="result-section">
-          <h3>Cover Letter</h3>
-          <p class="preserve-lines">{{ tailored.coverLetter }}</p>
+        <section class="export-panel cover-export" aria-label="Cover letter export options">
+          <div>
+            <span class="export-label">Cover Letter</span>
+            <strong>
+              @if (tailored.coverLetterDocument.companyName) {
+                {{ tailored.coverLetterDocument.companyName }}
+              } @else {
+                Tailored cover letter
+              }
+            </strong>
+          </div>
+          <div class="download-actions">
+            <button type="button" class="secondary-button" (click)="copyCoverLetter()">Copy letter</button>
+            <button type="button" class="secondary-button" (click)="downloadCoverLetterDocx()">DOCX</button>
+            <button type="button" class="secondary-button primary-outline" (click)="downloadCoverLetterPdf()">PDF</button>
+          </div>
+        </section>
+
+        <article class="cover-letter-preview" aria-label="Cover letter preview">
+          <div class="cover-letter-topline">
+            <strong>{{ tailored.resume.fullName || 'Candidate Name' }}</strong>
+            <span>
+              {{ tailored.resume.contact.email }}
+              @if (tailored.resume.contact.email && tailored.resume.contact.phone) { · }
+              {{ tailored.resume.contact.phone }}
+            </span>
+          </div>
+          <p>Dear {{ tailored.coverLetterDocument.recipient || 'Hiring Manager' }},</p>
+          <p class="cover-letter-body">{{ tailored.coverLetterDocument.content }}</p>
+          <p class="cover-signoff">Sincerely,<br><strong>{{ tailored.resume.fullName || 'Candidate Name' }}</strong></p>
         </article>
 
         <details class="json-preview">
-          <summary>View raw JSON</summary>
+          <summary>Developer view: raw JSON</summary>
           <pre>{{ prettyResult() }}</pre>
         </details>
       } @else {
         <div class="empty-state">
           <div class="empty-icon" aria-hidden="true">RF</div>
-          <h2>Your tailored result will appear here</h2>
-          <p>Nothing is saved to a database. Download the result before closing the page if you want to keep it.</p>
+          <h2>Your application package will appear here</h2>
+          <p>
+            ResumeForge will create a structured resume and cover letter that you can copy or export as DOCX and PDF.
+          </p>
         </div>
       }
     </div>
   </section>
 
+  @if (copyMessage()) {
+    <div class="copy-toast" role="status" aria-live="polite">{{ copyMessage() }}</div>
+  }
+
   <footer>
     <p>
-      ResumeForge uses AI-generated text. Verify every metric, claim, company reference, and keyword before submitting an application.
+      ResumeForge uses AI-generated text. Verify every metric, claim, company reference, keyword, date, and contact detail before submitting an application.
     </p>
   </footer>
 </main>
