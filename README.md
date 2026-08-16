@@ -1,10 +1,6 @@
 # ResumeForge
 
-![GitHub Stars](https://img.shields.io/github/stars/manjinder-dev/ResumeForge?style=for-the-badge)
-![GitHub License](https://img.shields.io/github/license/manjinder-dev/ResumeForge?style=for-the-badge)
-![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?style=for-the-badge&logo=dotnet)
-![Angular](https://img.shields.io/badge/Angular-18-DD0031?style=for-the-badge&logo=angular)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker)
+[![GitHub Stars](https://img.shields.io/github/stars/manjinder-dev/ResumeForge?style=for-the-badge)](https://github.com/manjinder-dev/ResumeForge/stargazers) [![GitHub License](https://img.shields.io/github/license/manjinder-dev/ResumeForge?style=for-the-badge)](https://github.com/manjinder-dev/ResumeForge/blob/main/LICENSE) [![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?style=for-the-badge&logo=dotnet)](https://dotnet.microsoft.com/) [![Angular](https://img.shields.io/badge/Angular-18-DD0031?style=for-the-badge&logo=angular)](https://angular.dev/) [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker)](https://www.docker.com/)
 
 > AI-powered, multi-provider resume tailoring built with **.NET 8**, **Angular 18**, **Docker**, and modern LLM integrations.
 
